@@ -25,7 +25,7 @@ jobs:
     # attach protection rules (required reviewers, wait timer) later.
     environment:
       name: production
-      url: https://design-manager-api.siddur.workers.dev
+      url: https://dm.lopiansky.org
 
     env:
       # Set in repo Settings → Secrets and variables → Actions.
@@ -55,18 +55,20 @@ jobs:
       - name: Deploy all to Cloudflare
         run: pnpm deploy:all
 
-      - name: Smoke test /healthz
+      - name: Smoke test — Access is gating dm.lopiansky.org
         run: |
           set -euo pipefail
-          URL="https://design-manager-api.siddur.workers.dev/healthz"
+          URL="https://dm.lopiansky.org/"
           for i in 1 2 3 4 5; do
-            code=$(curl -sS -o /dev/null -w '%{http_code}' "$URL" || echo 000)
-            if [ "$code" = "200" ]; then
-              echo "healthz ok"
+            response=$(curl -sI "$URL" || true)
+            code=$(printf '%s' "$response" | awk 'NR==1 {print $2}')
+            location=$(printf '%s' "$response" | awk 'tolower($1)=="location:" {print $2}' | tr -d '\r\n')
+            if [ "$code" = "302" ] && printf '%s' "$location" | grep -q "cloudflareaccess.com/cdn-cgi/access/login"; then
+              echo "OK — Access is gating (302 → $location)"
               exit 0
             fi
-            echo "attempt $i: got $code — retrying in 2s"
-            sleep 2
+            echo "attempt $i: code=$code location=$location — retrying in 3s"
+            sleep 3
           done
-          echo "healthz never returned 200"
+          echo "dm.lopiansky.org did not return the expected Access redirect"
           exit 1

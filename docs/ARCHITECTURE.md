@@ -16,7 +16,7 @@ Core decisions:
 ```
 ┌─────────────────────────────────────────────────────────────────┐
 │  Admin Dashboard (React + Vite, served via Worker Assets)       │
-│  Domain: capture.<yourzone>.com  (workers.dev DISABLED)         │
+│  Domain: dm.lopiansky.org        (workers.dev DISABLED)         │
 │  Protected by: Cloudflare Access (Zero Trust self-hosted app)   │
 └─────────────────────┬───────────────────────────────────────────┘
                       │  Cf-Access-Jwt-Assertion
@@ -153,7 +153,7 @@ This system must plug into existing CF Workers SaaS products with minimal fricti
 |---|---|---|---|
 | **Workers Service Binding** (preferred) | SaaS Worker lives in the *same* CF account as `workers/api` | Bind `CAPTURE_API` in the SaaS `wrangler.jsonc`; call `env.CAPTURE_API.fetch(req)` | Shared `INTERNAL_SERVICE_TOKEN` header (bindings skip the zone, so Access can't sign a JWT). Token rotates via `wrangler secret put`. |
 | **Queue producer binding** | Fire-and-forget, high-volume, SaaS Worker doesn't need the job ID synchronously | Bind `CAPTURE_JOBS` queue in SaaS; `env.CAPTURE_JOBS.send(job)` | Same account; platform-level |
-| **HTTPS + Cloudflare Access Service Token** | SaaS Worker in a different account / zone | `fetch('https://capture.<zone>/v1/captures', { headers: { 'CF-Access-Client-Id': …, 'CF-Access-Client-Secret': … } })` | Service Token policy on the same Access application that gates humans |
+| **HTTPS + Cloudflare Access Service Token** | SaaS Worker in a different account / zone | `fetch('https://dm.lopiansky.org/v1/captures', { headers: { 'CF-Access-Client-Id': …, 'CF-Access-Client-Secret': … } })` | Service Token policy on the same Access application that gates humans |
 
 All three channels converge on the same API Worker code path. The middleware accepts either a valid `Cf-Access-Jwt-Assertion` (humans or zone-traversing Service Tokens) *or* a valid `X-Internal-Service-Token` (Service Binding callers). The Service Binding path also sends `X-Internal-Source-Product` for audit tagging.
 

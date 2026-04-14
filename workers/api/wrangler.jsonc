@@ -5,14 +5,18 @@
   "compatibility_date": "2025-04-01",
   "compatibility_flags": ["nodejs_compat"],
 
-  // TEMPORARY: exposed on workers.dev while no custom domain + Cloudflare Access
-  // are attached. The Access middleware still enforces either a valid Access JWT
-  // (won't be present here yet) or a valid X-Internal-Service-Token. So public
-  // access is effectively gated by the internal shared secret until a domain
-  // lands. Flip back to `workers_dev: false` + `preview_urls: false` the moment
-  // an Access-protected custom domain is in place.
-  "workers_dev": true,
-  "preview_urls": true,
+  // Zero Trust: served only via dm.lopiansky.org, which sits behind the
+  // "design-manager" Cloudflare Access application.
+  "workers_dev": false,
+  "preview_urls": false,
+
+  "routes": [
+    {
+      "pattern": "dm.lopiansky.org",
+      "zone_name": "lopiansky.org",
+      "custom_domain": true
+    }
+  ],
 
   "d1_databases": [
     {
@@ -34,8 +38,8 @@
   },
 
   "vars": {
-    "ACCESS_TEAM_DOMAIN": "TODO.cloudflareaccess.com",
-    "ACCESS_AUD": "TODO-access-application-aud"
+    "ACCESS_TEAM_DOMAIN": "patient-manager-bzr-pages.cloudflareaccess.com",
+    "ACCESS_AUD": "78980206b795f542ed20b1dd80dba7416eed49e6899053524ec9e4398bc92c68"
   },
 
   // Dashboard SPA — built from apps/dashboard. Run `pnpm build:dashboard`
