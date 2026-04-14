@@ -5,19 +5,24 @@
   "compatibility_date": "2025-04-01",
   "compatibility_flags": ["nodejs_compat"],
 
-  // Zero Trust: never expose on workers.dev — custom domain only.
-  "workers_dev": false,
-  "preview_urls": false,
+  // TEMPORARY: exposed on workers.dev while no custom domain + Cloudflare Access
+  // are attached. The Access middleware still enforces either a valid Access JWT
+  // (won't be present here yet) or a valid X-Internal-Service-Token. So public
+  // access is effectively gated by the internal shared secret until a domain
+  // lands. Flip back to `workers_dev: false` + `preview_urls: false` the moment
+  // an Access-protected custom domain is in place.
+  "workers_dev": true,
+  "preview_urls": true,
 
   "d1_databases": [
     {
       "binding": "DB",
       "database_name": "design-manager",
-      "database_id": "TODO-set-before-deploy"
+      "database_id": "0496f70e-38d6-4736-a648-3644d3f96921"
     }
   ],
   "kv_namespaces": [
-    { "binding": "JWKS_CACHE", "id": "TODO-set-before-deploy" }
+    { "binding": "JWKS_CACHE", "id": "637d2e4291804eaebe92fbad27f89a16" }
   ],
   "r2_buckets": [
     { "binding": "CAPTURES", "bucket_name": "design-captures" }
