@@ -55,20 +55,33 @@ jobs:
       - name: Deploy all to Cloudflare
         run: pnpm deploy:all
 
-      - name: Smoke test — Access is gating dm.lopiansky.org
+      # Strong end-to-end check: present the design-manager-ci Access
+      # Service Token, Access validates at the edge, our Worker's middleware
+      # validates the minted JWT against the team JWKS, and the /v1/captures
+      # GET returns 200 with a jobs list. This exercises DNS + TLS + Access
+      # gating + JWT verification + RBAC in one request.
+      - name: Smoke test — Access + Service Token end-to-end
+        env:
+          CF_ACCESS_CLIENT_ID:     ${{ secrets.CF_ACCESS_CLIENT_ID }}
+          CF_ACCESS_CLIENT_SECRET: ${{ secrets.CF_ACCESS_CLIENT_SECRET }}
         run: |
           set -euo pipefail
-          URL="https://dm.lopiansky.org/"
+          if [ -z "${CF_ACCESS_CLIENT_ID:-}" ] || [ -z "${CF_ACCESS_CLIENT_SECRET:-}" ]; then
+            echo "::error::CF_ACCESS_CLIENT_ID / CF_ACCESS_CLIENT_SECRET repo secrets are required"
+            exit 1
+          fi
+          URL="https://dm.lopiansky.org/v1/captures"
           for i in 1 2 3 4 5; do
-            response=$(curl -sI "$URL" || true)
-            code=$(printf '%s' "$response" | awk 'NR==1 {print $2}')
-            location=$(printf '%s' "$response" | awk 'tolower($1)=="location:" {print $2}' | tr -d '\r\n')
-            if [ "$code" = "302" ] && printf '%s' "$location" | grep -q "cloudflareaccess.com/cdn-cgi/access/login"; then
-              echo "OK — Access is gating (302 → $location)"
+            code=$(curl -sS -o /dev/null -w '%{http_code}' \
+              -H "CF-Access-Client-Id: $CF_ACCESS_CLIENT_ID" \
+              -H "CF-Access-Client-Secret: $CF_ACCESS_CLIENT_SECRET" \
+              "$URL" || echo 000)
+            if [ "$code" = "200" ]; then
+              echo "OK — Access + Service Token end-to-end"
               exit 0
             fi
-            echo "attempt $i: code=$code location=$location — retrying in 3s"
+            echo "attempt $i: $code — retrying in 3s"
             sleep 3
           done
-          echo "dm.lopiansky.org did not return the expected Access redirect"
+          echo "Smoke test never reached 200"
           exit 1
