@@ -31,6 +31,14 @@
   "vars": {
     "ACCESS_TEAM_DOMAIN": "TODO.cloudflareaccess.com",
     "ACCESS_AUD": "TODO-access-application-aud"
+  },
+
+  // Dashboard SPA — built from apps/dashboard. Run `pnpm build:dashboard`
+  // (or `pnpm --filter @design-manager/dashboard build`) before deploying.
+  "assets": {
+    "directory": "../../apps/dashboard/dist",
+    "binding": "ASSETS",
+    "not_found_handling": "single-page-application"
   }
 
   // Required Workers Secrets (set via `wrangler secret put`):

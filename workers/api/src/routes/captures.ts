@@ -1,7 +1,9 @@
 import { Hono } from 'hono';
 import {
+  captureArtifacts,
   captureRequestSchema,
   encryptJson,
+  type CaptureArtifact,
   type CaptureJob,
   type RequestOrigin,
 } from '@design-manager/shared';
@@ -101,4 +103,30 @@ capturesRoutes.get('/:id', requireRole('viewer'), async (c) => {
     .first();
   if (!row) return c.json({ error: 'not found' }, 404);
   return c.json({ job: row });
+});
+
+// Streams a single R2 artifact for a completed job.
+// The URL-segment `:artifact` is one of the keys of `captureArtifacts`
+// (screenshot, mhtml, singleFile, rendered, meta, readme).
+capturesRoutes.get('/:id/artifact/:artifact', requireRole('viewer'), async (c) => {
+  const artifact = c.req.param('artifact') as CaptureArtifact;
+  if (!(artifact in captureArtifacts)) {
+    return c.json({ error: 'unknown artifact' }, 400);
+  }
+
+  const job = await c.env.DB
+    .prepare('SELECT r2_prefix FROM jobs WHERE id = ?1')
+    .bind(c.req.param('id'))
+    .first<{ r2_prefix: string | null }>();
+  if (!job?.r2_prefix) return c.json({ error: 'not found' }, 404);
+
+  const key = `${job.r2_prefix}/${captureArtifacts[artifact]}`;
+  const obj = await c.env.CAPTURES.get(key);
+  if (!obj) return c.json({ error: 'artifact missing in R2' }, 404);
+
+  return new Response(obj.body, {
+    headers: {
+      'content-type': obj.httpMetadata?.contentType ?? 'application/octet-stream',
+    },
+  });
 });

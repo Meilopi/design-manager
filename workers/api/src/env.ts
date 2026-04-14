@@ -1,10 +1,13 @@
-import type { AccessIdentity } from '@design-manager/shared';
+import type { AccessIdentity } from '@design-manager/shared/access-jwt';
 
 export interface Env {
   DB: D1Database;
   JWKS_CACHE: KVNamespace;
   CAPTURES: R2Bucket;
   CAPTURE_JOBS: Queue;
+
+  /** Static assets binding for the dashboard SPA (apps/dashboard/dist). */
+  ASSETS: Fetcher;
 
   ACCESS_TEAM_DOMAIN: string;
   ACCESS_AUD: string;

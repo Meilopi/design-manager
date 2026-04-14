@@ -1,5 +1,6 @@
 import type { MiddlewareHandler } from 'hono';
-import { verifyAccessJwt, type AccessIdentity } from '@design-manager/shared';
+import type { AccessIdentity } from '@design-manager/shared/access-jwt';
+import { verifyAccessJwt } from '@design-manager/shared/access-jwt';
 import type { AppBindings } from '../env';
 
 const INTERNAL_TOKEN_HEADER = 'X-Internal-Service-Token';
