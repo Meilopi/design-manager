@@ -1,0 +1,40 @@
+{
+  "$schema": "https://unpkg.com/wrangler/config-schema.json",
+  "name": "design-manager-capture-queue-consumer",
+  "main": "src/index.ts",
+  "compatibility_date": "2025-04-01",
+  "compatibility_flags": ["nodejs_compat"],
+
+  "workers_dev": false,
+  "preview_urls": false,
+
+  "queues": {
+    "consumers": [
+      {
+        "queue": "capture-jobs",
+        "max_batch_size": 10,
+        "max_batch_timeout": 5,
+        "max_retries": 3,
+        "dead_letter_queue": "capture-jobs-dead"
+      }
+    ]
+  },
+
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "design-manager",
+      "database_id": "TODO-set-before-deploy"
+    }
+  ],
+
+  // Bind to the Workflow class hosted in workers/capture-workflow.
+  "workflows": [
+    {
+      "name": "capture-workflow",
+      "binding": "CAPTURE_WORKFLOW",
+      "class_name": "CaptureWorkflow",
+      "script_name": "design-manager-capture-workflow"
+    }
+  ]
+}

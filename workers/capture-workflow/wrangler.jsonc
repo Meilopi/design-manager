@@ -1,0 +1,40 @@
+{
+  "$schema": "https://unpkg.com/wrangler/config-schema.json",
+  "name": "design-manager-capture-workflow",
+  "main": "src/index.ts",
+  "compatibility_date": "2025-04-01",
+  "compatibility_flags": ["nodejs_compat"],
+
+  "workers_dev": false,
+  "preview_urls": false,
+
+  // Browser Rendering — fresh browser per workflow instance, closed in a finally
+  // step. See docs/ARCHITECTURE.md §5 for why we're not pooling (yet).
+  "browser": {
+    "binding": "BROWSER"
+  },
+
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "design-manager",
+      "database_id": "TODO-set-before-deploy"
+    }
+  ],
+  "r2_buckets": [
+    { "binding": "CAPTURES", "bucket_name": "design-captures" }
+  ],
+
+  // Declare the Workflow class hosted in this worker.
+  // Other workers invoke it by binding to the same `name` with a `script_name`.
+  "workflows": [
+    {
+      "name": "capture-workflow",
+      "binding": "WORKFLOW_SELF",
+      "class_name": "CaptureWorkflow"
+    }
+  ]
+
+  // Required Workers Secrets (same AUTH_ENC_KEY as workers/api):
+  //   AUTH_ENC_KEY  — 32-byte AES-GCM key, base64url.
+}

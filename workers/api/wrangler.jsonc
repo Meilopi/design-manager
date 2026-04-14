@@ -1,0 +1,49 @@
+{
+  "$schema": "https://unpkg.com/wrangler/config-schema.json",
+  "name": "design-manager-api",
+  "main": "src/index.ts",
+  "compatibility_date": "2025-04-01",
+  "compatibility_flags": ["nodejs_compat"],
+
+  // Zero Trust: never expose on workers.dev — custom domain only.
+  "workers_dev": false,
+  "preview_urls": false,
+
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "design-manager",
+      "database_id": "TODO-set-before-deploy"
+    }
+  ],
+  "kv_namespaces": [
+    { "binding": "JWKS_CACHE", "id": "TODO-set-before-deploy" }
+  ],
+  "r2_buckets": [
+    { "binding": "CAPTURES", "bucket_name": "design-captures" }
+  ],
+  "queues": {
+    "producers": [
+      { "binding": "CAPTURE_JOBS", "queue": "capture-jobs" }
+    ]
+  },
+
+  "vars": {
+    "ACCESS_TEAM_DOMAIN": "TODO.cloudflareaccess.com",
+    "ACCESS_AUD": "TODO-access-application-aud"
+  },
+
+  // Dashboard SPA — built from apps/dashboard. Run `pnpm build:dashboard`
+  // (or `pnpm --filter @design-manager/dashboard build`) before deploying.
+  "assets": {
+    "directory": "../../apps/dashboard/dist",
+    "binding": "ASSETS",
+    "not_found_handling": "single-page-application"
+  }
+
+  // Required Workers Secrets (set via `wrangler secret put`):
+  //   AUTH_ENC_KEY            — 32-byte AES-GCM key, base64url.
+  //   INTERNAL_SERVICE_TOKEN  — shared secret for SaaS Workers calling over
+  //                             a Service Binding. Must match the value bound
+  //                             into every SaaS Worker that uses capture-sdk.
+}
