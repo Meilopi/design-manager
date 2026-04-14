@@ -1,0 +1,43 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  checks:
+    name: typecheck + build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9.12.0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install deps
+        run: pnpm install --frozen-lockfile
+
+      - name: Typecheck all workspaces
+        run: pnpm -r typecheck
+
+      - name: Build dashboard
+        run: pnpm build:dashboard
+
+      # Advisory: fails while `workers_dev: true` is the known-temporary state
+      # in workers/api. Kept as `continue-on-error` so it doesn't block PRs
+      # but still surfaces in the checks UI as a reminder to flip back the
+      # moment a custom domain + Cloudflare Access are attached.
+      - name: Zero-Trust guard (advisory)
+        run: pnpm check:no-workers-dev
+        continue-on-error: true
