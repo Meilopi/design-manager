@@ -10,9 +10,12 @@
   "scripts": {
     "check:no-workers-dev": "node scripts/check-no-workers-dev.mjs",
     "typecheck": "pnpm -r typecheck",
-    "build:dashboard": "pnpm --filter @design-manager/dashboard build"
+    "build:dashboard": "pnpm --filter @design-manager/dashboard build",
+    "deploy:all": "node scripts/deploy.mjs",
+    "deploy:plan": "node scripts/deploy.mjs --plan"
   },
   "devDependencies": {
-    "typescript": "^5.6.2"
+    "typescript": "^5.6.2",
+    "undici": "^6.21.0"
   }
 }
