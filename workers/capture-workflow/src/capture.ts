@@ -45,6 +45,7 @@ export async function runCapture(
   job: CaptureJob,
   auth: AuthPayload,
   settleOverrides: Partial<SettleConfig>,
+  magicLinkEndpoint: string | null,
 ): Promise<CaptureArtifacts> {
   const viewport = job.viewport ?? DEFAULT_VIEWPORT;
   const settle: SettleConfig = { ...DEFAULT_SETTLE, ...settleOverrides };
@@ -55,7 +56,7 @@ export async function runCapture(
     const page = await browser.newPage();
     await page.setViewport({ width: viewport.width, height: viewport.height });
 
-    await applyAuth(page, auth, job.url);
+    await applyAuth(page, auth, job.url, magicLinkEndpoint);
 
     await page.goto(job.url, {
       waitUntil: settle.waitUntil,
@@ -88,37 +89,60 @@ export async function runCapture(
   }
 }
 
-async function applyAuth(page: Page, auth: AuthPayload, url: string): Promise<void> {
+async function applyAuth(
+  page: Page,
+  auth: AuthPayload,
+  url: string,
+  magicLinkEndpoint: string | null,
+): Promise<void> {
   if (auth.kind === 'session') {
-    const trimmed = auth.value.trim();
-    if (trimmed.startsWith('[') || trimmed.startsWith('{')) {
-      const parsed = JSON.parse(trimmed) as unknown;
-      const cookies = (Array.isArray(parsed) ? parsed : [parsed]) as CookieParam[];
-      await page.setCookie(...cookies);
-      return;
-    }
-    // Plain "name=value[; Domain=...][; Path=...]" form.
-    const [nameValue, ...attrs] = trimmed.split(';').map((s) => s.trim());
-    if (!nameValue) throw new Error('session auth value is empty');
-    const eq = nameValue.indexOf('=');
-    if (eq < 0) throw new Error("session auth value missing 'name=value'");
-    const cookie: CookieParam = {
-      name: nameValue.slice(0, eq),
-      value: nameValue.slice(eq + 1),
-      url,
-    };
-    for (const attr of attrs) {
-      const [k, v] = attr.split('=').map((s) => s.trim());
-      if (k?.toLowerCase() === 'domain' && v) cookie.domain = v;
-      if (k?.toLowerCase() === 'path' && v) cookie.path = v;
-    }
-    await page.setCookie(cookie);
+    await applySessionCookies(page, auth.value, url);
     return;
   }
 
-  // impersonation: an Authorization bearer token. The target SaaS's magic-link
-  // endpoint is expected to recognise it and set a scoped session cookie.
+  // impersonation: preferred path is to hit the product's magic-link endpoint
+  // with the JWT attached. That endpoint verifies the JWT and responds with a
+  // Set-Cookie (typically followed by a 302 back into the app). Cookies stick
+  // on the page's jar; we then clear the Authorization header so downstream
+  // requests to job.url aren't over-authenticated.
+  if (magicLinkEndpoint) {
+    await page.setExtraHTTPHeaders({ Authorization: `Bearer ${auth.value}` });
+    try {
+      await page.goto(magicLinkEndpoint, { waitUntil: 'networkidle0', timeout: 15_000 });
+    } finally {
+      await page.setExtraHTTPHeaders({});
+    }
+    return;
+  }
+
+  // Fallback: send bearer on every request. Works for APIs that accept bearer
+  // directly, but most SPAs expect cookies — prefer the magic-link flow.
   await page.setExtraHTTPHeaders({ Authorization: `Bearer ${auth.value}` });
+}
+
+async function applySessionCookies(page: Page, value: string, url: string): Promise<void> {
+  const trimmed = value.trim();
+  if (trimmed.startsWith('[') || trimmed.startsWith('{')) {
+    const parsed = JSON.parse(trimmed) as unknown;
+    const cookies = (Array.isArray(parsed) ? parsed : [parsed]) as CookieParam[];
+    await page.setCookie(...cookies);
+    return;
+  }
+  const [nameValue, ...attrs] = trimmed.split(';').map((s) => s.trim());
+  if (!nameValue) throw new Error('session auth value is empty');
+  const eq = nameValue.indexOf('=');
+  if (eq < 0) throw new Error("session auth value missing 'name=value'");
+  const cookie: CookieParam = {
+    name: nameValue.slice(0, eq),
+    value: nameValue.slice(eq + 1),
+    url,
+  };
+  for (const attr of attrs) {
+    const [k, v] = attr.split('=').map((s) => s.trim());
+    if (k?.toLowerCase() === 'domain' && v) cookie.domain = v;
+    if (k?.toLowerCase() === 'path' && v) cookie.path = v;
+  }
+  await page.setCookie(cookie);
 }
 
 function toUint8Array(data: Uint8Array | string | Buffer): Uint8Array {

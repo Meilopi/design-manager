@@ -151,11 +151,11 @@ This system must plug into existing CF Workers SaaS products with minimal fricti
 
 | Channel | When to use | How | Auth between caller and capture |
 |---|---|---|---|
-| **Workers Service Binding** (preferred) | SaaS Worker lives in the *same* CF account as `workers/api` | Bind `CAPTURE_API` in the SaaS `wrangler.jsonc`; call `env.CAPTURE_API.fetch(req)` | Platform-level; no network hop, no secrets to rotate |
+| **Workers Service Binding** (preferred) | SaaS Worker lives in the *same* CF account as `workers/api` | Bind `CAPTURE_API` in the SaaS `wrangler.jsonc`; call `env.CAPTURE_API.fetch(req)` | Shared `INTERNAL_SERVICE_TOKEN` header (bindings skip the zone, so Access can't sign a JWT). Token rotates via `wrangler secret put`. |
 | **Queue producer binding** | Fire-and-forget, high-volume, SaaS Worker doesn't need the job ID synchronously | Bind `CAPTURE_JOBS` queue in SaaS; `env.CAPTURE_JOBS.send(job)` | Same account; platform-level |
 | **HTTPS + Cloudflare Access Service Token** | SaaS Worker in a different account / zone | `fetch('https://capture.<zone>/v1/captures', { headers: { 'CF-Access-Client-Id': …, 'CF-Access-Client-Secret': … } })` | Service Token policy on the same Access application that gates humans |
 
-All three channels converge on the same API Worker code path; Access middleware accepts either a human JWT *or* a Service Token JWT (both surface via `Cf-Access-Jwt-Assertion`).
+All three channels converge on the same API Worker code path. The middleware accepts either a valid `Cf-Access-Jwt-Assertion` (humans or zone-traversing Service Tokens) *or* a valid `X-Internal-Service-Token` (Service Binding callers). The Service Binding path also sends `X-Internal-Source-Product` for audit tagging.
 
 `workers.dev` stays disabled on every surface; these channels are how calls legitimately reach the API.
 

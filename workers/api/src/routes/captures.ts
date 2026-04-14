@@ -18,7 +18,9 @@ capturesRoutes.post('/', requireRole('operator'), async (c) => {
   const envelope = await encryptJson(c.env.AUTH_ENC_KEY, body.auth);
 
   const requestedBy: RequestOrigin = identity.isServiceToken
-    ? { kind: 'service-token', clientId: identity.clientId ?? 'unknown' }
+    ? identity.clientId?.startsWith('saas:')
+      ? { kind: 'saas', productId: identity.clientId.slice('saas:'.length) }
+      : { kind: 'service-token', clientId: identity.clientId ?? 'unknown' }
     : { kind: 'dashboard', email: identity.email ?? 'unknown' };
 
   const job: CaptureJob = {
@@ -63,7 +65,11 @@ capturesRoutes.post('/', requireRole('operator'), async (c) => {
     .bind(
       job.createdAt,
       identity.email ?? null,
-      identity.isServiceToken ? identity.clientId ?? null : null,
+      requestedBy.kind === 'saas'
+        ? requestedBy.productId
+        : identity.isServiceToken
+          ? identity.clientId ?? null
+          : null,
       jobId,
       JSON.stringify({ productId: body.productId, url: body.url }),
     )

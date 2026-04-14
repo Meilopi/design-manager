@@ -11,6 +11,13 @@ export interface Env {
 
   /** 32-byte AES-GCM key, base64url-encoded. Set via `wrangler secret put AUTH_ENC_KEY`. */
   AUTH_ENC_KEY: string;
+
+  /**
+   * Shared secret for SaaS Workers calling this API over a Service Binding
+   * (Access doesn't mint a JWT when a binding skips the zone).
+   * Set via `wrangler secret put INTERNAL_SERVICE_TOKEN`.
+   */
+  INTERNAL_SERVICE_TOKEN: string;
 }
 
 export type AppBindings = {

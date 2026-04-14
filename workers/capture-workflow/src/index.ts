@@ -68,7 +68,13 @@ export class CaptureWorkflow extends WorkflowEntrypoint<Env, CaptureJob> {
           )
           .run();
 
-        const artifacts = await runCapture(this.env.BROWSER, job, auth, settle);
+        const artifacts = await runCapture(
+          this.env.BROWSER,
+          job,
+          auth,
+          settle,
+          product.magic_link_endpoint,
+        );
         const keys = await uploadArtifacts(this.env.CAPTURES, job, artifacts, startedAt);
         return {
           prefix: captureDir(job.productId, job.jobId, new Date(startedAt)),

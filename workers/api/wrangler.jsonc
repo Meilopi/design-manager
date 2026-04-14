@@ -34,5 +34,8 @@
   }
 
   // Required Workers Secrets (set via `wrangler secret put`):
-  //   AUTH_ENC_KEY  — 32-byte AES-GCM key, base64url-encoded.
+  //   AUTH_ENC_KEY            — 32-byte AES-GCM key, base64url.
+  //   INTERNAL_SERVICE_TOKEN  — shared secret for SaaS Workers calling over
+  //                             a Service Binding. Must match the value bound
+  //                             into every SaaS Worker that uses capture-sdk.
 }
