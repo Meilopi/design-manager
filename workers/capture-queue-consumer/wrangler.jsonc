@@ -26,15 +26,15 @@
       "database_name": "design-manager",
       "database_id": "TODO-set-before-deploy"
     }
-  ]
+  ],
 
-  // Added in Phase 2 once workers/capture-workflow exists:
-  // "workflows": [
-  //   {
-  //     "name": "capture-workflow",
-  //     "binding": "CAPTURE_WORKFLOW",
-  //     "class_name": "CaptureWorkflow",
-  //     "script_name": "design-manager-capture-workflow"
-  //   }
-  // ]
+  // Bind to the Workflow class hosted in workers/capture-workflow.
+  "workflows": [
+    {
+      "name": "capture-workflow",
+      "binding": "CAPTURE_WORKFLOW",
+      "class_name": "CaptureWorkflow",
+      "script_name": "design-manager-capture-workflow"
+    }
+  ]
 }
